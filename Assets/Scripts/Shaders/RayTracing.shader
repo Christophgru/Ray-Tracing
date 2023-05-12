@@ -52,6 +52,19 @@ Shader "Custom/RayTracing"
 			float4 SkyColourZenith;
 			float SunFocus;
 			float SunIntensity;
+			float Visibility;
+
+			//fogg Settngs
+			
+			bool FoggEnabled;
+			float4 FoggColour;
+			float4 FoggEmissionColour;
+			float4 FoggSpecularColour;
+			float FoggEmissionStrength;
+			float FoggSmoothness;
+			float FoggSpecularProbability;
+			float FoggHeight;
+			float FoggHeightBias;
 			
 			// Special material types
 			static const int CheckerPattern = 1;
@@ -172,6 +185,22 @@ Shader "Custom/RayTracing"
 				hitInfo.dst = dst;
 				return hitInfo;
 			}
+			HitInfo RayFogg(Ray ray, float distance){
+				HitInfo hitInfo;
+				hitInfo.didHit=true;
+				hitInfo.hitPoint=ray.origin+ray.dir*distance;
+				hitInfo.normal=ray.dir;
+				hitInfo.dst=distance;
+				RayTracingMaterial m;
+				m.colour=FoggColour;
+				m.emissionColour=FoggEmissionColour;
+				m.specularColour=FoggSpecularColour;
+				m.emissionStrength=FoggEmissionStrength;
+				m.smoothness=FoggSmoothness;
+				m.specularProbability=FoggSpecularProbability;
+				hitInfo.material=m;
+				return hitInfo;
+			}
 
 			// Thanks to https://gist.github.com/DomNomNom/46bb1ce47f68d255fd5d
 			bool RayBoundingBox(Ray ray, float3 boxMin, float3 boxMax)
@@ -253,7 +282,7 @@ Shader "Custom/RayTracing"
 			// --- Ray Tracing Stuff ---
 
 			// Find the first point that the given ray collides with, and return hit info
-			HitInfo CalculateRayCollision(Ray ray)
+			HitInfo CalculateRayCollision(Ray ray, inout uint rngState)
 			{
 				HitInfo closestHit = (HitInfo)0;
 				// We haven't hit anything yet, so 'closest' hit is infinitely far away
@@ -293,6 +322,25 @@ Shader "Custom/RayTracing"
 					}
 				}
 
+				//Calculate fog effect based on Visibility, distance of Ray, and Height of Ray Start and End
+
+				if(FoggEnabled){
+					float foggyness=closestHit.dst/Visibility;
+					float rndRangeZeroOne=RandomValue(rngState);
+					//ray longer than visibility will always hit fogg, below that random probability
+					if(rndRangeZeroOne<foggyness){
+						//introduce height offset
+						float inFoggArea=FoggHeightBias*(ray.origin.y+closestHit.hitPoint.y-2*FoggHeight);
+						//smooth Transition
+						inFoggArea+=FoggHeightBias*(RandomValue(rngState)-0.5);
+						//height filter
+						if(inFoggArea<=0){
+							closestHit= RayFogg(ray,closestHit.dst*rndRangeZeroOne);
+						}
+					}
+				}
+
+
 				return closestHit;
 			}
 
@@ -304,7 +352,7 @@ Shader "Custom/RayTracing"
 
 				for (int bounceIndex = 0; bounceIndex <= MaxBounceCount; bounceIndex ++)
 				{
-					HitInfo hitInfo = CalculateRayCollision(ray);
+					HitInfo hitInfo = CalculateRayCollision(ray, rngState);
 
 					if (hitInfo.didHit)
 					{
@@ -386,7 +434,7 @@ Shader "Custom/RayTracing"
 
 				float3 pixelCol = totalIncomingLight / NumRaysPerPixel;
 				return float4(pixelCol, 1);
-			}
+				}
 
 			ENDCG
 		}

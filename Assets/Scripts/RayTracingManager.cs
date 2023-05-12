@@ -15,6 +15,7 @@ public class RayTracingManager : MonoBehaviour
 	[SerializeField, Min(0)] float divergeStrength = 0.3f;
 	[SerializeField, Min(0)] float focusDistance = 1;
 	[SerializeField] EnvironmentSettings environmentSettings;
+	[SerializeField] FoggSettings foggSettings;
 
 	[Header("View Settings")]
 	[SerializeField] bool useShaderInSceneView;
@@ -121,6 +122,19 @@ public class RayTracingManager : MonoBehaviour
 		rayTracingMaterial.SetColor("SkyColourZenith", environmentSettings.skyColourZenith);
 		rayTracingMaterial.SetFloat("SunFocus", environmentSettings.sunFocus);
 		rayTracingMaterial.SetFloat("SunIntensity", environmentSettings.sunIntensity);
+		
+		rayTracingMaterial.SetInteger("FoggEnabled",foggSettings.enabled ? 1:0);
+		rayTracingMaterial.SetFloat("Visibility",foggSettings.visibilityDistance);
+		rayTracingMaterial.SetColor("FoggColour",foggSettings.foggColour);
+		rayTracingMaterial.SetColor("FoggEmissionColour",foggSettings.foggEmissionColour);
+		rayTracingMaterial.SetColor("FoggSpecularColour",foggSettings.foggSpecularColour);
+		rayTracingMaterial.SetFloat("FoggEmissionStrength",foggSettings.foggEmissionStrength);
+		rayTracingMaterial.SetFloat("FoggSmoothness",foggSettings.foggSmoothness);
+		rayTracingMaterial.SetFloat("FoggSpecularProbability",foggSettings.foggSpecularProbability);
+		rayTracingMaterial.SetFloat("FoggHeight",foggSettings.foggHeight);
+		rayTracingMaterial.SetFloat("FoggHeightBias",foggSettings.foggHeightBias);
+	
+
 	}
 
 	void UpdateCameraParams(Camera cam)
